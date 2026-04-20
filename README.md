@@ -1,30 +1,35 @@
-Выполнил: Вражкин Роман Евгеньевич (Б9123-09.03.03пикд(1))
-Вариант: SWAPI-PLANETS-MOD_E22_DETAIL_BY_ID_ONLY
+# Домашнее задание 4 
 
-Endpoints API
-Base URL: https://swapi.dev/api/
-List: GET /planets/?page=1
-Detail: GET /planets/{id}/
+ФИО: Вражкин Роман Евгеньевич  
+Группа: Б9123-09.03.03пикд(1)
 
-Стек и архитектура:
-- Kotlin + Jetpack Compose + Coroutines
-- Сеть: Retrofit + OkHttp (logging) + Moshi
-- DI: Hilt
-- Навигация: Jetpack Navigation (Navigation-Compose)
+API: [SWAPI](https://swapi.dev/)  
+Используется список планет и детали планеты по id.
 
-Слои:
-- data: DTO (PlanetDto, PlanetListResponseDto), SwapiApi, PlanetRepositoryImpl
-- domain: UI-модель Planet, интерфейс PlanetRepository
-- ui: экраны списка и деталей (PlanetListScreen, PlanetDetailScreen), навигация (AppNavHost), общие компоненты (LoadingView, ErrorView, VariantCodeBanner), кнопка retry
+## Room
+Сценарий: **Favourites** (избранное переживает перезапуск приложения)
 
-Экран списка показывает первую страницу планет, экран деталей открывается по клику и делает отдельный запрос по id
+Таблица:
+- `favourite_planets`
+- поля: `planetId` (PRIMARY KEY)
 
-Модификатор MOD_E22_DETAIL_BY_ID_ONLY
-- Навигация в экран деталей идёт только через маршрут planet_detail/{planetId}
-- В PlanetDetailViewModel planetId берётся из SavedStateHandle, объект планеты не передаётся через аргументы
-- Детали всегда загружаются отдельным запросом getPlanetDetail(id) в репозитории
+Как используется:
+- при нажатии на сердечко планета добавляется/удаляется из таблицы
+- экран `Favourites` читает id из Room и показывает сохраненные планеты
 
-Скриншоты
+Как проверить:
+1. Открыть список планет
+2. Добавить нужные планеты в избранное
+3. Полностью закрыть приложение
+4. Запустить снова
+5. Открыть экран `Favourites` - увидеть добавленные планеты
 
-![Главный экран](<main.png>)
-![Карточка планеты](<planet-info.png>)
+## Скриншоты
+<p>
+  <img src="list.png" width="180" />
+  <img src="detail.png" width="180" />
+  <img src="favourites.png" width="180" />
+  <img src="empty.png" width="180" />
+  <img src="error.png" width="180" />
+  <img src="loading.png" width="180" />
+</p>

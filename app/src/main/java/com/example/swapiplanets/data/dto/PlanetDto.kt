@@ -1,6 +1,6 @@
 package com.example.swapiplanets.data.dto
 
-import com.squareup.moshi.Json
+import com.google.gson.annotations.SerializedName
 
 data class PlanetListResponseDto(
     val count: Int,
@@ -14,8 +14,8 @@ data class PlanetDto(
     val climate: String,
     val terrain: String,
     val population: String,
-    @Json(name = "rotation_period") val rotationPeriod: String?,
-    @Json(name = "orbital_period") val orbitalPeriod: String?,
+    @SerializedName("rotation_period") val rotationPeriod: String?,
+    @SerializedName("orbital_period") val orbitalPeriod: String?,
     val diameter: String?,
     val url: String
 )

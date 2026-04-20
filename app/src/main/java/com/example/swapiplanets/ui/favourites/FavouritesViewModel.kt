@@ -1,83 +1,73 @@
-package com.example.swapiplanets.ui.list
+package com.example.swapiplanets.ui.favourites
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.swapiplanets.domain.repository.FavouritesRepository
 import com.example.swapiplanets.domain.model.Planet
+import com.example.swapiplanets.domain.repository.FavouritesRepository
 import com.example.swapiplanets.domain.repository.PlanetRepository
 import com.example.swapiplanets.ui.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
 
 @HiltViewModel
-class PlanetListViewModel @Inject constructor(
-    private val repository: PlanetRepository,
+class FavouritesViewModel @Inject constructor(
+    private val planetRepository: PlanetRepository,
     private val favouritesRepository: FavouritesRepository
 ) : ViewModel() {
 
     var state: UiState<List<Planet>> by mutableStateOf(UiState.Loading)
         private set
 
-    var query: String by mutableStateOf("")
-        private set
-
     var favouriteIds: Set<String> by mutableStateOf(emptySet())
         private set
 
-    private var allPlanets: List<Planet> = emptyList()
-
-    fun loadPlanets() {
-        state = UiState.Loading
+    fun loadFavourites() {
         viewModelScope.launch {
             try {
-                allPlanets = repository.getPlanets(page = 1)
-                applyFilters()
+                favouriteIds = favouritesRepository.getAll()
+                if (favouriteIds.isEmpty()) {
+                    state = UiState.Empty
+                    return@launch
+                }
+
+                state = UiState.Loading
+                val planets = favouriteIds.map { id ->
+                    async { planetRepository.getPlanetDetail(id) }
+                }.awaitAll()
+
+                state = if (planets.isEmpty()) UiState.Empty else UiState.Content(planets)
             } catch (e: Exception) {
                 state = UiState.Error(toReadableError(e))
             }
         }
     }
 
-    fun onQueryChange(newQuery: String) {
-        query = newQuery
-        applyFilters()
-    }
-
     fun toggleFavourite(id: String) {
         viewModelScope.launch {
             favouriteIds = favouritesRepository.toggle(id)
+            val current = (state as? UiState.Content)?.data.orEmpty()
+            val updated = current.filterNot { it.id == id }
+            state = if (updated.isEmpty()) UiState.Empty else UiState.Content(updated)
         }
-    }
-
-    private fun loadFavouriteIds() {
-        viewModelScope.launch {
-            favouriteIds = favouritesRepository.getAll()
-        }
-    }
-
-    private fun applyFilters() {
-        val filtered = allPlanets.filter {
-            query.isBlank() || it.name.contains(query.trim(), ignoreCase = true)
-        }
-        state = if (filtered.isEmpty()) UiState.Empty else UiState.Content(filtered)
     }
 
     private fun toReadableError(error: Throwable): String {
         return when (error) {
             is IOException -> "No internet connection. Check your network and retry."
             is HttpException -> "Server error (${error.code()}). Please try again."
-            else -> "Could not load planets. Please try again."
+            else -> "Could not load favourites. Please try again."
         }
     }
 
     init {
-        loadFavouriteIds()
-        loadPlanets()
+        loadFavourites()
     }
 }

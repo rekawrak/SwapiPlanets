@@ -8,6 +8,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.swapiplanets.ui.detail.PlanetDetailScreen
 import com.example.swapiplanets.ui.detail.PlanetDetailViewModel
+import com.example.swapiplanets.ui.favourites.FavouritesScreen
+import com.example.swapiplanets.ui.favourites.FavouritesViewModel
 import com.example.swapiplanets.ui.list.PlanetListScreen
 import com.example.swapiplanets.ui.list.PlanetListViewModel
 
@@ -22,21 +24,44 @@ fun AppNavHost(
         composable(route = NavRoutes.PLANET_LIST) {
             val vm: PlanetListViewModel = hiltViewModel()
             PlanetListScreen(
-                viewModel = vm,
+                state = vm.state,
+                query = vm.query,
+                favouriteIds = vm.favouriteIds,
+                onQueryChange = vm::onQueryChange,
+                onRetry = vm::loadPlanets,
+                onFavouritesClick = { navController.navigate(NavRoutes.FAVOURITES) },
                 onPlanetClick = { planetId ->
                     navController.navigate("${NavRoutes.PLANET_DETAIL}/$planetId")
-                }
+                },
+                onToggleFavourite = vm::toggleFavourite
+            )
+        }
+
+        composable(route = NavRoutes.FAVOURITES) {
+            val vm: FavouritesViewModel = hiltViewModel()
+            FavouritesScreen(
+                state = vm.state,
+                favouriteIds = vm.favouriteIds,
+                onBack = { navController.popBackStack() },
+                onRetry = vm::loadFavourites,
+                onPlanetClick = { planetId ->
+                    navController.navigate("${NavRoutes.PLANET_DETAIL}/$planetId")
+                },
+                onToggleFavourite = vm::toggleFavourite
             )
         }
 
         composable(
-    route = "${NavRoutes.PLANET_DETAIL}/{planetId}"
-) { backStackEntry ->
-    val vm: PlanetDetailViewModel = hiltViewModel(backStackEntry)
-    PlanetDetailScreen(
-        viewModel = vm,
-        navController = navController
-    )
-}
+            route = "${NavRoutes.PLANET_DETAIL}/{planetId}"
+        ) { backStackEntry ->
+            val vm: PlanetDetailViewModel = hiltViewModel(backStackEntry)
+            PlanetDetailScreen(
+                state = vm.state,
+                isFavourite = vm.isFavourite,
+                onBack = { navController.popBackStack() },
+                onRetry = vm::loadPlanet,
+                onToggleFavourite = vm::toggleFavourite
+            )
+        }
     }
 }

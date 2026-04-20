@@ -1,4 +1,4 @@
-package com.example.swapiplanets.ui.list
+package com.example.swapiplanets.ui.favourites
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,24 +12,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.swapiplanets.domain.model.Planet
 import com.example.swapiplanets.ui.common.UiState
@@ -39,13 +38,11 @@ import com.example.swapiplanets.ui.components.LoadingView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlanetListScreen(
+fun FavouritesScreen(
     state: UiState<List<Planet>>,
-    query: String,
     favouriteIds: Set<String>,
-    onQueryChange: (String) -> Unit,
+    onBack: () -> Unit,
     onRetry: () -> Unit,
-    onFavouritesClick: () -> Unit,
     onPlanetClick: (String) -> Unit,
     onToggleFavourite: (String) -> Unit
 ) {
@@ -56,30 +53,20 @@ fun PlanetListScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
-                actions = {
-                    IconButton(onClick = onFavouritesClick) {
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Filled.Favorite,
-                            contentDescription = "Open favourites",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Back"
                         )
                     }
                 },
-                title = {
-                    Text(
-                        text = "SWAPI Planets",
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                title = { Text("Favourites") }
             )
         }
     ) { innerPadding ->
         when (state) {
-            UiState.Loading -> {
-                LoadingView(modifier = Modifier.padding(innerPadding))
-            }
+            UiState.Loading -> LoadingView(modifier = Modifier.padding(innerPadding))
 
             UiState.Empty -> {
                 Column(
@@ -89,9 +76,7 @@ fun PlanetListScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    EmptyView(
-                        message = "Try another search query."
-                    )
+                    EmptyView(message = "Add planets to favourites from list or detail screens.")
                 }
             }
 
@@ -103,43 +88,28 @@ fun PlanetListScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    ErrorView(
-                        message = state.message,
-                        onRetry = onRetry
-                    )
+                    ErrorView(message = state.message, onRetry = onRetry)
                 }
             }
 
             is UiState.Content -> {
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
+                        .padding(innerPadding),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = onQueryChange,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        singleLine = true,
-                        label = { Text("Search by planet name") }
-                    )
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(
-                            items = state.data,
-                            key = { it.id }
-                        ) { planet ->
-                            PlanetListItem(
-                                planet = planet,
-                                isFavourite = favouriteIds.contains(planet.id),
-                                onClick = { onPlanetClick(planet.id) },
-                                onToggleFavourite = { onToggleFavourite(planet.id) }
-                            )
-                        }
+                    items(
+                        items = state.data,
+                        key = { it.id }
+                    ) { planet ->
+                        FavouritePlanetItem(
+                            planet = planet,
+                            isFavourite = favouriteIds.contains(planet.id),
+                            onClick = { onPlanetClick(planet.id) },
+                            onToggleFavourite = { onToggleFavourite(planet.id) }
+                        )
                     }
                 }
             }
@@ -148,7 +118,7 @@ fun PlanetListScreen(
 }
 
 @Composable
-private fun PlanetListItem(
+private fun FavouritePlanetItem(
     planet: Planet,
     isFavourite: Boolean,
     onClick: () -> Unit,
@@ -180,9 +150,7 @@ private fun PlanetListItem(
                 text = "Population: ${planet.population}",
                 style = MaterialTheme.typography.bodySmall
             )
-            IconButton(
-                onClick = onToggleFavourite
-            ) {
+            IconButton(onClick = onToggleFavourite) {
                 Icon(
                     imageVector = if (isFavourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",

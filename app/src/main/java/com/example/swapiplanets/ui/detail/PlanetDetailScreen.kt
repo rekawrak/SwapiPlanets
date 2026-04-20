@@ -11,6 +11,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,7 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import com.example.swapiplanets.domain.model.Planet
 import com.example.swapiplanets.ui.common.UiState
 import com.example.swapiplanets.ui.components.ErrorView
 import com.example.swapiplanets.ui.components.LoadingView
@@ -33,11 +35,12 @@ import com.example.swapiplanets.ui.components.LoadingView
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanetDetailScreen(
-    viewModel: PlanetDetailViewModel,
-    navController: NavController
+    state: UiState<Planet>,
+    isFavourite: Boolean,
+    onBack: () -> Unit,
+    onRetry: () -> Unit,
+    onToggleFavourite: () -> Unit
 ) {
-    val state = viewModel.state
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -46,10 +49,19 @@ fun PlanetDetailScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onToggleFavourite) {
+                        Icon(
+                            imageVector = if (isFavourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
+                            tint = if (isFavourite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
@@ -82,9 +94,13 @@ fun PlanetDetailScreen(
                 ) {
                     ErrorView(
                         message = state.message,
-                        onRetry = { viewModel.loadPlanet() }
+                        onRetry = onRetry
                     )
                 }
+            }
+
+            UiState.Empty -> {
+                LoadingView(modifier = Modifier.padding(innerPadding))
             }
 
             is UiState.Content -> {
