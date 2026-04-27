@@ -9,13 +9,15 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://swapi.dev/api/"
+    private const val PRIMARY_BASE_URL = "https://swapi.dev/api/"
+    private const val FALLBACK_BASE_URL = "https://swapi.py4e.com/api/"
 
     @Provides
     @Singleton
@@ -30,11 +32,12 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(
+    @Named("primary")
+    fun providePrimaryRetrofit(
         client: OkHttpClient
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(PRIMARY_BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -42,6 +45,26 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideSwapiApi(retrofit: Retrofit): SwapiApi =
+    @Named("fallback")
+    fun provideFallbackRetrofit(
+        client: OkHttpClient
+    ): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(FALLBACK_BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("primary")
+    fun providePrimarySwapiApi(@Named("primary") retrofit: Retrofit): SwapiApi =
+        retrofit.create(SwapiApi::class.java)
+
+    @Provides
+    @Singleton
+    @Named("fallback")
+    fun provideFallbackSwapiApi(@Named("fallback") retrofit: Retrofit): SwapiApi =
         retrofit.create(SwapiApi::class.java)
 }

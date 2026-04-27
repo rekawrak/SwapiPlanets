@@ -10,6 +10,7 @@ import com.example.swapiplanets.domain.model.Planet
 import com.example.swapiplanets.domain.repository.PlanetRepository
 import com.example.swapiplanets.ui.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
@@ -51,13 +52,15 @@ class PlanetListViewModel @Inject constructor(
 
     fun toggleFavourite(id: String) {
         viewModelScope.launch {
-            favouriteIds = favouritesRepository.toggle(id)
+            favouritesRepository.toggle(id)
         }
     }
 
-    private fun loadFavouriteIds() {
+    private fun observeFavouriteIds() {
         viewModelScope.launch {
-            favouriteIds = favouritesRepository.getAll()
+            favouritesRepository.observeAll().collect { ids ->
+                favouriteIds = ids
+            }
         }
     }
 
@@ -77,7 +80,7 @@ class PlanetListViewModel @Inject constructor(
     }
 
     init {
-        loadFavouriteIds()
+        observeFavouriteIds()
         loadPlanets()
     }
 }

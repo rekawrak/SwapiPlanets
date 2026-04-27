@@ -86,12 +86,22 @@ fun PlanetListScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        singleLine = true,
+                        label = { Text("Search by planet name") }
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
                     EmptyView(
                         message = "Try another search query."
                     )
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
 

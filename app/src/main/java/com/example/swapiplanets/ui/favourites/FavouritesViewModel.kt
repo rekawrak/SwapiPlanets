@@ -10,11 +10,8 @@ import com.example.swapiplanets.domain.repository.FavouritesRepository
 import com.example.swapiplanets.domain.repository.PlanetRepository
 import com.example.swapiplanets.ui.common.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,44 +27,46 @@ class FavouritesViewModel @Inject constructor(
         private set
 
     fun loadFavourites() {
+        refreshFavourites()
+    }
+
+    private fun observeFavourites() {
         viewModelScope.launch {
-            try {
-                favouriteIds = favouritesRepository.getAll()
-                if (favouriteIds.isEmpty()) {
-                    state = UiState.Empty
-                    return@launch
-                }
+            favouritesRepository.observeAll().collect { ids ->
+                favouriteIds = ids
+                refreshFavourites()
+            }
+        }
+    }
 
-                state = UiState.Loading
-                val planets = favouriteIds.map { id ->
-                    async { planetRepository.getPlanetDetail(id) }
-                }.awaitAll()
+    private fun refreshFavourites() {
+        viewModelScope.launch {
+            val ids = favouriteIds.toList()
+            if (ids.isEmpty()) {
+                state = UiState.Empty
+                return@launch
+            }
 
-                state = if (planets.isEmpty()) UiState.Empty else UiState.Content(planets)
-            } catch (e: Exception) {
-                state = UiState.Error(toReadableError(e))
+            state = UiState.Loading
+            val planets = ids.mapNotNull { id ->
+                runCatching { planetRepository.getPlanetDetail(id) }.getOrNull()
+            }
+
+            state = if (planets.isEmpty()) {
+                UiState.Error("Could not load favourite planets. Please try again.")
+            } else {
+                UiState.Content(planets)
             }
         }
     }
 
     fun toggleFavourite(id: String) {
         viewModelScope.launch {
-            favouriteIds = favouritesRepository.toggle(id)
-            val current = (state as? UiState.Content)?.data.orEmpty()
-            val updated = current.filterNot { it.id == id }
-            state = if (updated.isEmpty()) UiState.Empty else UiState.Content(updated)
-        }
-    }
-
-    private fun toReadableError(error: Throwable): String {
-        return when (error) {
-            is IOException -> "No internet connection. Check your network and retry."
-            is HttpException -> "Server error (${error.code()}). Please try again."
-            else -> "Could not load favourites. Please try again."
+            favouritesRepository.toggle(id)
         }
     }
 
     init {
-        loadFavourites()
+        observeFavourites()
     }
 }

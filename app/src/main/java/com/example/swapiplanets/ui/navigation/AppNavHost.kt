@@ -29,7 +29,11 @@ fun AppNavHost(
                 favouriteIds = vm.favouriteIds,
                 onQueryChange = vm::onQueryChange,
                 onRetry = vm::loadPlanets,
-                onFavouritesClick = { navController.navigate(NavRoutes.FAVOURITES) },
+                onFavouritesClick = {
+                    navController.navigate(NavRoutes.FAVOURITES) {
+                        launchSingleTop = true
+                    }
+                },
                 onPlanetClick = { planetId ->
                     navController.navigate("${NavRoutes.PLANET_DETAIL}/$planetId")
                 },
