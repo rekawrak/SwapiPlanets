@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+captures/
+.cxx/
+local.properties
+
+# Gradle / Kotlin build artifacts
+.gradle/
+.kotlin/
+build/
+**/build/
+
+# Logs
+*.log
+hs_err_pid*
+
+# Keystore / signing files
+*.jks
+*.keystore
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Android artifacts
+*.apk
+*.aab
