@@ -3,6 +3,7 @@ package com.example.swapiplanets.testutil
 import com.example.swapiplanets.domain.model.Planet
 import com.example.swapiplanets.domain.repository.FavouritesRepository
 import com.example.swapiplanets.domain.repository.PlanetRepository
+import com.example.swapiplanets.domain.repository.PlanetUserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -39,6 +40,26 @@ class FakeFavouritesRepository(initial: Set<String> = emptySet()) : FavouritesRe
             ids.remove(id)
         }
         flow.value = ids.toSet()
+    }
+}
+
+class FakePlanetUserPreferencesRepository(
+    onlyFavourites: Boolean = false,
+    sortNamesDescending: Boolean = false
+) : PlanetUserPreferencesRepository {
+    private val onlyFavouritesFlow = MutableStateFlow(onlyFavourites)
+    private val sortDescendingFlow = MutableStateFlow(sortNamesDescending)
+
+    override fun observeListOnlyFavourites(): Flow<Boolean> = onlyFavouritesFlow
+
+    override suspend fun setListOnlyFavourites(enabled: Boolean) {
+        onlyFavouritesFlow.value = enabled
+    }
+
+    override fun observeSortNamesDescending(): Flow<Boolean> = sortDescendingFlow
+
+    override suspend fun setSortNamesDescending(descending: Boolean) {
+        sortDescendingFlow.value = descending
     }
 }
 

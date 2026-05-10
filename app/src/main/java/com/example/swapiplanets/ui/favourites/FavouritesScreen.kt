@@ -24,6 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,8 +42,10 @@ import com.example.swapiplanets.ui.components.LoadingView
 fun FavouritesScreen(
     state: UiState<List<Planet>>,
     favouriteIds: Set<String>,
+    sortNamesDescending: Boolean,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onSortOrderChange: (Boolean) -> Unit,
     onPlanetClick: (String) -> Unit,
     onToggleFavourite: (String) -> Unit
 ) {
@@ -58,6 +61,13 @@ fun FavouritesScreen(
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    TextButton(onClick = { onSortOrderChange(!sortNamesDescending) }) {
+                        Text(
+                            text = if (sortNamesDescending) "Sort: Z → A" else "Sort: A → Z"
                         )
                     }
                 },

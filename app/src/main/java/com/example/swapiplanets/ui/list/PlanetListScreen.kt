@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,12 +18,14 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
@@ -43,7 +46,11 @@ fun PlanetListScreen(
     state: UiState<List<Planet>>,
     query: String,
     favouriteIds: Set<String>,
+    onlyFavourites: Boolean,
+    sortNamesDescending: Boolean,
     onQueryChange: (String) -> Unit,
+    onOnlyFavouritesChange: (Boolean) -> Unit,
+    onSortOrderChange: (Boolean) -> Unit,
     onRetry: () -> Unit,
     onFavouritesClick: () -> Unit,
     onPlanetClick: (String) -> Unit,
@@ -88,14 +95,13 @@ fun PlanetListScreen(
                         .padding(innerPadding),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = onQueryChange,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        singleLine = true,
-                        label = { Text("Search by planet name") }
+                    ListSearchAndFilters(
+                        query = query,
+                        onlyFavourites = onlyFavourites,
+                        sortNamesDescending = sortNamesDescending,
+                        onQueryChange = onQueryChange,
+                        onOnlyFavouritesChange = onOnlyFavouritesChange,
+                        onSortOrderChange = onSortOrderChange
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     EmptyView(
@@ -126,14 +132,13 @@ fun PlanetListScreen(
                         .fillMaxSize()
                         .padding(innerPadding)
                 ) {
-                    OutlinedTextField(
-                        value = query,
-                        onValueChange = onQueryChange,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        singleLine = true,
-                        label = { Text("Search by planet name") }
+                    ListSearchAndFilters(
+                        query = query,
+                        onlyFavourites = onlyFavourites,
+                        sortNamesDescending = sortNamesDescending,
+                        onQueryChange = onQueryChange,
+                        onOnlyFavouritesChange = onOnlyFavouritesChange,
+                        onSortOrderChange = onSortOrderChange
                     )
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
@@ -152,6 +157,47 @@ fun PlanetListScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ListSearchAndFilters(
+    query: String,
+    onlyFavourites: Boolean,
+    sortNamesDescending: Boolean,
+    onQueryChange: (String) -> Unit,
+    onOnlyFavouritesChange: (Boolean) -> Unit,
+    onSortOrderChange: (Boolean) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("Search by planet name") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            FilterChip(
+                selected = onlyFavourites,
+                onClick = { onOnlyFavouritesChange(!onlyFavourites) },
+                label = { Text("Favourites only") }
+            )
+            TextButton(onClick = { onSortOrderChange(!sortNamesDescending) }) {
+                Text(
+                    text = if (sortNamesDescending) "Sort: Z → A" else "Sort: A → Z"
+                )
             }
         }
     }
