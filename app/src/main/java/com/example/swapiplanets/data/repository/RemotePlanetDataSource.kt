@@ -3,16 +3,17 @@ package com.example.swapiplanets.data.repository
 import com.example.swapiplanets.data.mapper.toDomain
 import com.example.swapiplanets.data.network.SwapiApi
 import com.example.swapiplanets.domain.model.Planet
-import com.example.swapiplanets.domain.repository.PlanetRepository
+import com.example.swapiplanets.domain.repository.PlanetRemoteDataSource
 import javax.inject.Inject
 import javax.inject.Named
+import javax.inject.Singleton
 
-class PlanetRepositoryImpl @Inject constructor(
+@Singleton
+class RemotePlanetDataSource @Inject constructor(
     @Named("primary") private val primaryApi: SwapiApi,
     @Named("fallback") private val fallbackApi: SwapiApi
-) : PlanetRepository {
-
-    override suspend fun getPlanets(page: Int): List<Planet> {
+) : PlanetRemoteDataSource {
+    override suspend fun fetchPlanets(page: Int): List<Planet> {
         return runCatching {
             primaryApi.getPlanets(page).results
         }.getOrElse {
@@ -20,7 +21,7 @@ class PlanetRepositoryImpl @Inject constructor(
         }.map { it.toDomain() }
     }
 
-    override suspend fun getPlanetDetail(id: String): Planet {
+    override suspend fun fetchPlanetDetail(id: String): Planet {
         return runCatching {
             primaryApi.getPlanetDetail(id)
         }.getOrElse {

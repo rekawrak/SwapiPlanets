@@ -2,6 +2,7 @@ package com.example.swapiplanets.ui.favourites
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.swapiplanets.domain.model.Planet
+import com.example.swapiplanets.domain.model.FavouriteWithCacheStatus
 import com.example.swapiplanets.ui.common.UiState
 import com.example.swapiplanets.ui.components.EmptyView
 import com.example.swapiplanets.ui.components.ErrorView
@@ -40,7 +41,7 @@ import com.example.swapiplanets.ui.components.LoadingView
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavouritesScreen(
-    state: UiState<List<Planet>>,
+    state: UiState<List<FavouriteWithCacheStatus>>,
     favouriteIds: Set<String>,
     sortNamesDescending: Boolean,
     onBack: () -> Unit,
@@ -79,24 +80,22 @@ fun FavouritesScreen(
             UiState.Loading -> LoadingView(modifier = Modifier.padding(innerPadding))
 
             UiState.Empty -> {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.Center
                 ) {
                     EmptyView(message = "Add planets to favourites from list or detail screens.")
                 }
             }
 
             is UiState.Error -> {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.Center
                 ) {
                     ErrorView(message = state.message, onRetry = onRetry)
                 }
@@ -112,13 +111,13 @@ fun FavouritesScreen(
                 ) {
                     items(
                         items = state.data,
-                        key = { it.id }
-                    ) { planet ->
+                        key = { it.planet.id }
+                    ) { item ->
                         FavouritePlanetItem(
-                            planet = planet,
-                            isFavourite = favouriteIds.contains(planet.id),
-                            onClick = { onPlanetClick(planet.id) },
-                            onToggleFavourite = { onToggleFavourite(planet.id) }
+                            item = item,
+                            isFavourite = favouriteIds.contains(item.planet.id),
+                            onClick = { onPlanetClick(item.planet.id) },
+                            onToggleFavourite = { onToggleFavourite(item.planet.id) }
                         )
                     }
                 }
@@ -129,11 +128,12 @@ fun FavouritesScreen(
 
 @Composable
 private fun FavouritePlanetItem(
-    planet: Planet,
+    item: FavouriteWithCacheStatus,
     isFavourite: Boolean,
     onClick: () -> Unit,
     onToggleFavourite: () -> Unit
 ) {
+    val planet = item.planet
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -146,6 +146,13 @@ private fun FavouritePlanetItem(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
+            if (item.isStale) {
+                Text(
+                    text = "Stale cache — background refresh pending",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Climate: ${planet.climate}",

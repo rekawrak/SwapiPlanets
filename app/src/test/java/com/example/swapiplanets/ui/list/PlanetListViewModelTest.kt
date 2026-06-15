@@ -1,8 +1,11 @@
 package com.example.swapiplanets.ui.list
 
 import com.example.swapiplanets.testutil.FakeFavouritesRepository
+import com.example.swapiplanets.testutil.FakeFavouritesSyncRepository
+import com.example.swapiplanets.testutil.FakePlanetNotesRepository
 import com.example.swapiplanets.testutil.FakePlanetRepository
 import com.example.swapiplanets.testutil.FakePlanetUserPreferencesRepository
+import com.example.swapiplanets.testutil.FakePlanetUserStateRepository
 import com.example.swapiplanets.testutil.MainDispatcherRule
 import com.example.swapiplanets.testutil.planet
 import com.example.swapiplanets.ui.common.UiState
@@ -21,17 +24,24 @@ class PlanetListViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    private fun createViewModel(repo: FakePlanetRepository): PlanetListViewModel {
+        return PlanetListViewModel(
+            repository = repo,
+            favouritesRepository = FakeFavouritesRepository(),
+            userPreferences = FakePlanetUserPreferencesRepository(),
+            notesRepository = FakePlanetNotesRepository(),
+            favouritesSyncRepository = FakeFavouritesSyncRepository(),
+            userStateRepository = FakePlanetUserStateRepository()
+        )
+    }
+
     @Test
     fun initialState_isLoading() = runTest {
         val repo = FakePlanetRepository()
         repo.planetsResult = Result.success(listOf(planet("1")))
-        val vm = PlanetListViewModel(
-            repo,
-            FakeFavouritesRepository(),
-            FakePlanetUserPreferencesRepository()
-        )
+        val vm = createViewModel(repo)
 
-        assertTrue(vm.state.value is UiState.Loading)
+        assertTrue(vm.state.value.content is UiState.Loading)
     }
 
     @Test
@@ -39,17 +49,13 @@ class PlanetListViewModelTest {
         val repo = FakePlanetRepository().apply {
             planetsResult = Result.success(listOf(planet("1"), planet("2")))
         }
-        val vm = PlanetListViewModel(
-            repo,
-            FakeFavouritesRepository(),
-            FakePlanetUserPreferencesRepository()
-        )
+        val vm = createViewModel(repo)
 
         advanceUntilIdle()
 
-        val state = vm.state.value
-        assertTrue(state is UiState.Content)
-        assertEquals(2, (state as UiState.Content).data.size)
+        val content = vm.state.value.content
+        assertTrue(content is UiState.Content)
+        assertEquals(2, (content as UiState.Content).data.size)
     }
 
     @Test
@@ -57,15 +63,26 @@ class PlanetListViewModelTest {
         val repo = FakePlanetRepository().apply {
             planetsResult = Result.failure(RuntimeException("boom"))
         }
-        val vm = PlanetListViewModel(
-            repo,
-            FakeFavouritesRepository(),
-            FakePlanetUserPreferencesRepository()
-        )
+        val vm = createViewModel(repo)
 
         advanceUntilIdle()
 
-        assertTrue(vm.state.value is UiState.Error)
+        assertTrue(vm.state.value.content is UiState.Error)
+    }
+
+    @Test
+    fun loadPlanets_withCache_showsContentWhenNetworkFails() = runTest {
+        val cached = listOf(planet("1", "Cached Planet"))
+        val repo = FakePlanetRepository().apply {
+            cachedPlanets = cached
+            planetsResult = Result.failure(RuntimeException("offline"))
+        }
+        val vm = createViewModel(repo)
+
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.content is UiState.Content)
+        assertTrue(vm.state.value.isOfflineData)
     }
 
     @Test
@@ -73,19 +90,15 @@ class PlanetListViewModelTest {
         val repo = FakePlanetRepository().apply {
             planetsResult = Result.failure(RuntimeException("boom"))
         }
-        val vm = PlanetListViewModel(
-            repo,
-            FakeFavouritesRepository(),
-            FakePlanetUserPreferencesRepository()
-        )
+        val vm = createViewModel(repo)
         advanceUntilIdle()
-        assertTrue(vm.state.value is UiState.Error)
+        assertTrue(vm.state.value.content is UiState.Error)
 
         repo.planetsResult = Result.success(listOf(planet("10")))
         vm.loadPlanets()
         advanceUntilIdle()
 
-        assertTrue(vm.state.value is UiState.Content)
+        assertTrue(vm.state.value.content is UiState.Content)
         assertEquals(2, repo.planetsRequestCount)
     }
 
@@ -94,17 +107,38 @@ class PlanetListViewModelTest {
         val repo = FakePlanetRepository().apply {
             planetsResult = Result.success(listOf(planet("1", "Tatooine")))
         }
-        val vm = PlanetListViewModel(
-            repo,
-            FakeFavouritesRepository(),
-            FakePlanetUserPreferencesRepository()
-        )
+        val vm = createViewModel(repo)
         advanceUntilIdle()
 
         vm.onQueryChange("zzz")
         advanceTimeBy(350)
         advanceUntilIdle()
 
-        assertTrue(vm.state.value is UiState.Empty)
+        assertTrue(vm.state.value.content is UiState.Empty)
+    }
+
+    @Test
+    fun pinnedPlanets_appearFirstInList() = runTest {
+        val repo = FakePlanetRepository().apply {
+            planetsResult = Result.success(
+                listOf(planet("1", "Alderaan"), planet("2", "Bespin"), planet("3", "Corellia"))
+            )
+        }
+        val userState = FakePlanetUserStateRepository().apply {
+            setPinnedIds("3", "1")
+        }
+        val vm = PlanetListViewModel(
+            repository = repo,
+            favouritesRepository = FakeFavouritesRepository(),
+            userPreferences = FakePlanetUserPreferencesRepository(),
+            notesRepository = FakePlanetNotesRepository(),
+            favouritesSyncRepository = FakeFavouritesSyncRepository(),
+            userStateRepository = userState
+        )
+        advanceUntilIdle()
+
+        val content = vm.state.value.content as UiState.Content
+        val names = content.data.map { it.name }
+        assertEquals(listOf("Corellia", "Alderaan", "Bespin"), names)
     }
 }

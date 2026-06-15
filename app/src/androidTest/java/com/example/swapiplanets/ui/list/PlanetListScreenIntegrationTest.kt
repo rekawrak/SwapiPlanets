@@ -16,6 +16,38 @@ class PlanetListScreenIntegrationTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private fun defaultScreen(
+        state: UiState<List<Planet>>,
+        onRetry: () -> Unit = {},
+        onPlanetClick: (String) -> Unit = {},
+        isOfflineData: Boolean = false
+    ) {
+        PlanetListScreen(
+            state = state,
+            query = "",
+            favouriteIds = emptySet(),
+            onlyFavourites = false,
+            sortNamesDescending = false,
+            isOfflineData = isOfflineData,
+            planetIdsWithNotes = emptySet(),
+            userStates = emptyMap(),
+            pinnedPlanetIds = emptyList(),
+            pinFeedback = null,
+            onQueryChange = {},
+            onOnlyFavouritesChange = {},
+            onSortOrderChange = {},
+            onRetry = onRetry,
+            onFavouritesClick = {},
+            onSettingsClick = {},
+            onRecentClick = {},
+            onNotesClick = {},
+            onCollectionsClick = {},
+            onPlanetClick = onPlanetClick,
+            onToggleFavourite = {},
+            onTogglePin = {}
+        )
+    }
+
     @Test
     fun contentState_displaysLoadedData() {
         val planets = listOf(
@@ -32,20 +64,7 @@ class PlanetListScreenIntegrationTest {
         )
 
         composeRule.setContent {
-            PlanetListScreen(
-                state = UiState.Content(planets),
-                query = "",
-                favouriteIds = emptySet(),
-                onlyFavourites = false,
-                sortNamesDescending = false,
-                onQueryChange = {},
-                onOnlyFavouritesChange = {},
-                onSortOrderChange = {},
-                onRetry = {},
-                onFavouritesClick = {},
-                onPlanetClick = {},
-                onToggleFavourite = {}
-            )
+            defaultScreen(UiState.Content(planets))
         }
 
         composeRule.onNodeWithText("Tatooine").assertIsDisplayed()
@@ -53,22 +72,23 @@ class PlanetListScreenIntegrationTest {
     }
 
     @Test
+    fun offlineBanner_shownWhenOfflineData() {
+        composeRule.setContent {
+            defaultScreen(
+                state = UiState.Content(listOf(planetStub())),
+                isOfflineData = true
+            )
+        }
+        composeRule.onNodeWithText("Offline mode — showing cached planets").assertIsDisplayed()
+    }
+
+    @Test
     fun errorState_retryButtonInvokesCallback() {
         var retried = false
         composeRule.setContent {
-            PlanetListScreen(
+            defaultScreen(
                 state = UiState.Error("No internet connection. Check your network and retry."),
-                query = "",
-                favouriteIds = emptySet(),
-                onlyFavourites = false,
-                sortNamesDescending = false,
-                onQueryChange = {},
-                onOnlyFavouritesChange = {},
-                onSortOrderChange = {},
-                onRetry = { retried = true },
-                onFavouritesClick = {},
-                onPlanetClick = {},
-                onToggleFavourite = {}
+                onRetry = { retried = true }
             )
         }
 
@@ -79,37 +99,28 @@ class PlanetListScreenIntegrationTest {
     @Test
     fun listItemClick_passesCorrectPlanetId() {
         var clickedId: String? = null
-        val planets = listOf(
-            Planet(
-                id = "5",
-                name = "Dagobah",
-                climate = "murky",
-                terrain = "swamp",
-                population = "unknown",
-                rotationPeriod = "23",
-                orbitalPeriod = "341",
-                diameter = "8900"
-            )
-        )
-
         composeRule.setContent {
-            PlanetListScreen(
-                state = UiState.Content(planets),
-                query = "",
-                favouriteIds = emptySet(),
-                onlyFavourites = false,
-                sortNamesDescending = false,
-                onQueryChange = {},
-                onOnlyFavouritesChange = {},
-                onSortOrderChange = {},
-                onRetry = {},
-                onFavouritesClick = {},
-                onPlanetClick = { clickedId = it },
-                onToggleFavourite = {}
+            defaultScreen(
+                state = UiState.Content(listOf(planetStub(id = "5", name = "Dagobah"))),
+                onPlanetClick = { clickedId = it }
             )
         }
 
         composeRule.onNodeWithText("Dagobah").performClick()
         assertEquals("5", clickedId)
     }
+
+    private fun planetStub(
+        id: String = "1",
+        name: String = "Tatooine"
+    ) = Planet(
+        id = id,
+        name = name,
+        climate = "arid",
+        terrain = "desert",
+        population = "200000",
+        rotationPeriod = "23",
+        orbitalPeriod = "304",
+        diameter = "10465"
+    )
 }

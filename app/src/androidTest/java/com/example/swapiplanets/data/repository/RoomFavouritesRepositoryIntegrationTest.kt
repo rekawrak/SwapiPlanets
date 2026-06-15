@@ -1,12 +1,16 @@
 package com.example.swapiplanets.data.repository
 
 import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.example.swapiplanets.data.local.AppDatabase
-import kotlinx.coroutines.test.runTest
+import com.example.swapiplanets.data.repository.RoomUserProfileRepository
+import com.example.swapiplanets.data.repository.RoomFavouritesRepository
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,6 +23,7 @@ import org.junit.runner.RunWith
 class RoomFavouritesRepositoryIntegrationTest {
 
     private lateinit var database: AppDatabase
+    private lateinit var profileRepository: RoomUserProfileRepository
     private lateinit var repository: RoomFavouritesRepository
 
     @Before
@@ -27,7 +32,15 @@ class RoomFavouritesRepositoryIntegrationTest {
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = RoomFavouritesRepository(database.favouritesDao())
+        profileRepository = RoomUserProfileRepository(
+            database,
+            database.userProfileDao(),
+            PreferenceDataStoreFactory.create(
+                produceFile = { context.preferencesDataStoreFile("test_favourites.pb") }
+            )
+        )
+        runBlocking { profileRepository.ensureDefaultProfile() }
+        repository = RoomFavouritesRepository(database.favouritesDao(), profileRepository)
     }
 
     @After
@@ -36,7 +49,7 @@ class RoomFavouritesRepositoryIntegrationTest {
     }
 
     @Test
-    fun repositoryAndRoom_togglePersistsAndReadsBack() = runTest {
+    fun repositoryAndRoom_togglePersistsAndReadsBack() = runBlocking {
         repository.toggle("7")
 
         assertTrue(repository.isFavourite("7"))
@@ -48,7 +61,7 @@ class RoomFavouritesRepositoryIntegrationTest {
     }
 
     @Test
-    fun repositoryAndRoom_observeAllEmitsSequence() = runTest {
+    fun repositoryAndRoom_observeAllEmitsSequence() = runBlocking {
         repository.observeAll().test {
             assertEquals(emptySet<String>(), awaitItem())
 

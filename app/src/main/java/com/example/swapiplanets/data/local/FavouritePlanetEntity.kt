@@ -1,9 +1,14 @@
 package com.example.swapiplanets.data.local
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
-@Entity(tableName = "favourite_planets")
+@Entity(
+    tableName = "favourite_planets",
+    primaryKeys = ["profileId", "planetId"]
+)
 data class FavouritePlanetEntity(
-    @PrimaryKey val planetId: String
+    val profileId: String,
+    val planetId: String,
+    val addedAtMs: Long,
+    val lastSyncedAtMs: Long?
 )
